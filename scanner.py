@@ -145,5 +145,5 @@ def scanner(input):
         print(token_sequence, "\n")
     return token_sequence
 
-Input = list("a /* nao \n eae \n nao */ oi eaeae if x==1 else x = 1 = >")
-scanner(Input)
+Input = list("if (x == 1) { System.out.println(x); } else { System.out.println(2); }")
+print(scanner(Input))
