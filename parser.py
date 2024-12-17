@@ -1,23 +1,27 @@
 gramatica = {
-    "PROG": [["MAIN", "{", "CLASSE", "}"]],
+    "PROG": [["MAIN", "CLASSE_LIST"]],
+    "CLASSE_LIST": [["CLASSE", "CLASSE_LIST"], ["ε"]],
 
     "MAIN": [["class", "id", "{", "public", "static", "void", "main", "(", "String", "[", "]", "id", ")", "{", "CMD", "}", "}"]],
 
-    "CLASSE": [["class", "id", "CLASSE'"],["extends", "id", "{", "VAR_LIST", "METODO_LIST", "}"], ["{", "VAR_LIST", "METODO_LIST", "}"]],
+    "CLASSE": [["class", "id", "EXTENDS_ID_OPTIONAL", "{", "VAR_LIST", "METODO_LIST", "}"]],
+    "EXTENDS_ID_OPTIONAL": [["extends", "id"], ["ε"]],
 
     "VAR_LIST": [["VAR", "VAR_LIST"], ["ε"]],
     "VAR": [["TIPO", "id", ";"]],
 
     "METODO_LIST": [["METODO", "METODO_LIST"], ["ε"]],
-    "METODO": [["public", "TIPO", "id", "(", "PARAMS", ")", "{", "VAR_LIST", "CMD_LIST", "return", "EXP", ";", "}"]],
+    "METODO": [["public", "TIPO", "id", "(", "PARAMS_OPTIONAL", ")", "{", "VAR_LIST", "CMD_LIST", "return", "EXP", ";", "}"]],
+    "PARAMS_OPTIONAL": [["PARAMS"], ["ε"]],
 
-    "PARAMS": [["TIPO", "id", "PARAMS'"], ["ε"]],
-    "PARAMS'": [[",", "TIPO", "id", "PARAMS'"], ["ε"]],
+    "PARAMS": [["TIPO", "id", "PARAMS", "TIPO_ID_LIST"]],
+    "TIPO_ID_LIST": [[",","TIPO", "id", "TIPO_ID_LIST"], ["ε"]],
+
 
     "TIPO": [["int", "[", "]"], ["boolean"], ["int"], ["id"]],
 
     "CMD_LIST": [["CMD", "CMD_LIST"], ["ε"]],
-    "CMD": [["{", "CMD'", "}"],
+    "CMD": [["{", "CMD_LIST'", "}"],
             ["if", "(", "EXP", ")", "CMD", "else", "CMD"],
             ["if", "(", "EXP", ")", "CMD"],
             ["while", "(", "EXP", ")", "CMD"],
@@ -43,10 +47,11 @@ gramatica = {
 
     "PEXP": [["id", "PEXP'"], ["this", "PEXP'"], ["new", "id", "(", ")", "PEXP'"], ["(", "EXP", ")", "PEXP'"]],
     "PEXP'": [[".", "id", "PEXP''"], ["ε"]],
-    "PEXP''": [["(", "EXPS", ")", "PEXP'"], ["ε"]],
+    "PEXP''": [["(", "EXPS_OPTIONAL", ")", "PEXP'"], ["ε"]],
+    "EXPS_OPTIONAL": [["EXPS"], ["ε"]],
 
-    "EXPS": [["EXP", "EXPS'"], ["ε"]],
-    "EXPS'": [[",", "EXP", "EXPS'"], ["ε"]]
+    "EXPS": [["EXP", "EXPS_LIST'"],],
+    "EXPS_LIST": [["," , "EXP", "EXPS_LIST"], ["ε"]]
 }
 
 def first(gramatica):
@@ -86,25 +91,33 @@ def follow(firsts):
             for producao in gramatica[simbolo]:
                 for i in range(len(producao)):
                     if producao[i] in gramatica:
+                        #se for ultimo simbolo na producao
                         if i == len(producao) - 1:
                             for innerFollow in follow[simbolo]:
                                 if innerFollow not in follow[producao[i]]:
                                     follow[producao[i]].append(innerFollow)
                                     changes = True
                         else:
+                            #se for terminal
                             if producao[i+1] not in gramatica:
+                                print(producao[i+1])
                                 if producao[i+1] not in follow[producao[i]]:
-                                    follow[producao[i]].append(producao[i+1])
-                                    changes = True
-                            for innerFirst in firsts[producao[i+1]]:
-                                if innerFirst not in follow[producao[i]]:
-                                    follow[producao[i]].append(innerFirst)
-                                    changes = True
-                            if "ε" in firsts[producao[i+1]]:
-                                for innerFollow in follow[simbolo]:
-                                    if innerFollow not in follow[producao[i]]:
-                                        follow[producao[i]].append(innerFollow)
+                                    if follow[producao[i]] !=  "ε":
+                                        follow[producao[i]].append(producao[i+1])
                                         changes = True
-    return follow
+                            else:
+                                #se for não terminal
+                                for innerFirst in firsts[producao[i+1]]:
+                                    if innerFirst not in follow[producao[i]]:
+                                        if innerFirst !=  "ε":
+                                            follow[producao[i]].append(innerFirst)
+                                            changes = True
+                                #se o first do proximo simbolo da producao contem "ε"
+                                if "ε" in firsts[producao[i+1]]:
+                                    for innerFollow in follow[simbolo]:
+                                        if innerFollow not in follow[producao[i]]:
+                                            follow[producao[i]].append(innerFollow)
+                                            changes = True
+        return follow
 
 print(follow(first(gramatica)))
