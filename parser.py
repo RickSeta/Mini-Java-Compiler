@@ -157,3 +157,33 @@ def print_tabela(tabela):
             print("\t", terminal, ":", tabela[simbolo][terminal])
 
 print_tabela(tabela_ll1(test_grammar))
+
+def parser(tabela,gramatica,entrada):
+    pilha = ["$", list(gramatica.keys())[0]]
+    syntatic_tree = [ ]
+    entrada.append("$")
+    i = 0
+    while True:
+        print("Pilha: ",pilha," entrada: ", entrada[i])
+        topoPilha = pilha[-1]
+        if topoPilha == entrada[i][0] == "$":
+            print("Aceito")
+            break
+        elif topoPilha in gramatica:
+            if entrada[i][0] in tabela[topoPilha]:
+                pilha.pop()
+                for simbolo in reversed(tabela[topoPilha][entrada[i]]):
+                    if simbolo != "ε":
+                        pilha.append(simbolo)
+            else:
+                print("Erro. Não existe regra para", topoPilha, entrada[i])
+                break
+        elif topoPilha == entrada[i]:
+            print('match', ":", entrada[i])
+            pilha.pop()
+            i += 1
+
+        else:
+            print("Erro. ")
+            break
+parser(tabela_ll1(test_grammar),test_grammar,['(',')','(',')','$'])
