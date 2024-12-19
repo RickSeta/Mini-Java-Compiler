@@ -1,4 +1,4 @@
-gramatica = {
+gramatica_minijava = {
     "PROG": [["MAIN", "CLASSE_LIST"]],
     "CLASSE_LIST": [["CLASSE", "CLASSE_LIST"], ["ε"]],
 
@@ -54,7 +54,10 @@ gramatica = {
     "EXPS_LIST": [["," , "EXP", "EXPS_LIST"], ["ε"]]
 }
 
-def first(gramatica):
+test_grammar ={
+    "S": [["(", "S",")","S"], ["ε"]],
+}
+def firstFunc(gramatica):
     firsts = {}
     for simbolo in gramatica:
         firsts[simbolo] = []
@@ -79,11 +82,11 @@ def first(gramatica):
                     
     return firsts
 
-def follow(firsts):
+def follow(firsts,gramatica):
     follow = {}
     for simbolo in gramatica:
         follow[simbolo] = []
-    follow["PROG"].append("$")
+    follow[list(gramatica.keys())[0]].append("$")
     changes = True
     while changes:
         changes = False
@@ -120,4 +123,37 @@ def follow(firsts):
                                             changes = True
         return follow
 
-print(follow(first(gramatica)))
+
+def tabela_ll1(gramatica):
+    firsts = firstFunc(gramatica)
+    follows = follow(firsts,gramatica)
+    tabela = {}
+    for simbolo in gramatica:
+
+        tabela[simbolo] = {}
+        for producao in gramatica[simbolo]:
+            #se producao[0] não for for terminal
+            if(producao[0] in gramatica):
+                for terminal in firsts[producao[0]]:
+                    if terminal != "ε":
+                        tabela[simbolo][terminal] = producao
+                if "ε" in firsts[producao[0]]:
+                    for terminal in follows[simbolo]:
+                        tabela[simbolo][terminal] = producao
+            else:
+                #se for terminal e não epsilon
+                if producao[0] != "ε":
+                    tabela[simbolo][producao[0]] = producao
+                else:
+                    #se for ε
+                    for terminal in follows[simbolo]:
+                        tabela[simbolo][terminal] = producao
+    return tabela
+
+def print_tabela(tabela):
+    for simbolo in tabela:
+        print(simbolo)
+        for terminal in tabela[simbolo]:
+            print("\t", terminal, ":", tabela[simbolo][terminal])
+
+print_tabela(tabela_ll1(test_grammar))
