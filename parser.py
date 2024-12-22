@@ -157,33 +157,150 @@ def print_tabela(tabela):
             print("\t", terminal, ":", tabela[simbolo][terminal])
 
 print_tabela(tabela_ll1(test_grammar))
+class arvore(object):
+    def __init__(self, parent = None, id = None, child =None, data = None, type = any):
+        self.parent = parent
+        self.child = child
+        self.id = id
+        self.type = type
+        self.data = data
+    
+    def add_child(self,name, data, id):
+        if self.child == None:
+            self.child = []
+        new_child = arvore(data=data, id=name,type = any, parent=self)
+        self.child.append(new_child)
+        return new_child
+
+    def print_tree(self, level=0, is_last=True, indent="  "):
+        """
+        Prints the tree structure in a clear and readable format.
+
+        Args:
+            level (int, optional): The current level of the node in the tree. Defaults to 0.
+            is_last (bool, optional): Whether the current node is the last child of its parent. Defaults to True.
+            indent (str, optional): The indentation string to use for each level. Defaults to "  ".
+        """
+        if self.data is None:
+            return
+        qmark = "\u25A1"  # Unicode right angle quotation mark for better visual representation
+
+        # Print the current node with proper indentation
+        print(indent * level + ("|- " if level > 0 else "") +
+              (qmark if is_last else "|") + str(self.data))
+
+        # Recursively print child nodes with adjusted indentation
+        if self.child:
+            i = 0
+            while(len(self.child) > i):
+                is_last_child = (i == len(self.child) - 1)
+                # print(self.child[i].data)
+                # print(self.child[i].child)
+                self.child[i].print_tree(level + 1, is_last_child, indent)
+                i += 1
 
 def parser(tabela,gramatica,entrada):
-    pilha = ["$", list(gramatica.keys())[0]]
-    syntatic_tree = [ ]
+    producao_inicial= list(gramatica.keys())[0]
+    pilha = ["$", producao_inicial]
     entrada.append("$")
-    i = 0
+
+
+    tree = arvore(data = producao_inicial, id = 1)
+    syntatic_tree_pointer = tree
+    syntatic_child_pilha =[]
+    scp_counter = 0
+    nivel = 0
+    
+    
+    entradaPointer = 0
     while True:
-        print("Pilha: ",pilha," entrada: ", entrada[i])
+        print("\n------------------------------------")
+        tree.print_tree()
+        print("Pilha: ",pilha," entrada: ", entrada[entradaPointer])
         topoPilha = pilha[-1]
-        if topoPilha == entrada[i][0] == "$":
+
+        #Eqnaunto houver demarcador de nivel remova e reduza o nivel da arvore que esta sendo trabalho
+        while topoPilha == "#":
+            nivel -=1
+            print("Reducao ao nivel ",nivel)
+            pilha.pop()
+            topoPilha = pilha[-1]
+            syntatic_tree_pointer = syntatic_tree_pointer.parent
+            scp_counter = syntatic_child_pilha.pop()
+            scp_counter += 1
+            if scp_counter < len(syntatic_tree_pointer.child):
+                print(scp_counter)
+                print(len(syntatic_tree_pointer.child))
+                syntatic_tree_pointer = syntatic_tree_pointer.child[scp_counter]
+
+        #se o topo da pilha for o simbolo de fim da pilha e o simbolo de entrada for o mesmo aceita
+        if topoPilha == entrada[entradaPointer][0] == "$":
             print("Aceito")
             break
+
+        #se o topo da pilha for uma produção possivel
         elif topoPilha in gramatica:
-            if entrada[i][0] in tabela[topoPilha]:
+
+            #se houver transicao na tabela utilizando o topo da pilha e o simbolo de entrada então substitui o topo da pilha pela nova produção
+            if entrada[entradaPointer][0] in tabela[topoPilha]:
+                producao = tabela[topoPilha][entrada[entradaPointer]]
+                print("Produção: ", producao)
                 pilha.pop()
-                for simbolo in reversed(tabela[topoPilha][entrada[i]]):
-                    if simbolo != "ε":
-                        pilha.append(simbolo)
+                
+                
+
+                if producao[0] != "ε":
+                    pilha.append('#')
+                    nivel +=1
+                    syntatic_child_pilha.append(scp_counter)
+                    scp_counter = 0
+
+                    print("Adicao ao nivel ",nivel)
+
+                    idcounter = 0
+                    for simbolo in reversed(producao):
+                        if simbolo != "ε":
+                            pilha.append(simbolo)
+
+                            #colocando nao terminal na arvore
+                    
+                    for simbolo in producao:
+                        
+                        syntatic_tree_pointer.add_child(simbolo, simbolo,simbolo+str(idcounter))
+                        idcounter += 1
+                    syntatic_tree_pointer = syntatic_tree_pointer.child[0]
+                else:
+                    print("Adicao de ε")
+                    syntatic_tree_pointer.add_child("ε", "ε",str(entradaPointer))
+                    
+                    if(pilha[-1] != "#"):
+                        scp_counter += 1
+                        syntatic_tree_pointer = syntatic_tree_pointer.parent.child[scp_counter]
             else:
-                print("Erro. Não existe regra para", topoPilha, entrada[i])
+                print("Erro. Não existe regra para", topoPilha, entrada[entradaPointer])
                 break
-        elif topoPilha == entrada[i]:
-            print('match', ":", entrada[i])
+        elif topoPilha == entrada[entradaPointer]:
+            print('match', ":", entrada[entradaPointer])
             pilha.pop()
-            i += 1
+            #colocando terminal na arvore
+            print(syntatic_tree_pointer.data)
+            syntatic_tree_pointer.add_child(entrada[entradaPointer],entrada[entradaPointer],entradaPointer)
+            scp_counter += 1
+            syntatic_tree_pointer = syntatic_tree_pointer.parent.child[scp_counter]
+            
+            entradaPointer += 1
 
         else:
             print("Erro. ")
             break
+# tree = arvore(data = "S", id = "1")
+# tree.add_child("S", "2")
+# tree.add_child("S", "3")
+
+# tree.child[0].add_child("S", "4")
+# tree.child[0].add_child("S", "5")
+# tree.child[1].add_child("S", "6")
+# tree.child[1].add_child("S", "7")
+# tree.child[0].child[0].add_child("S", "8")
+# tree.print_tree()
 parser(tabela_ll1(test_grammar),test_grammar,['(',')','(',')','$'])
