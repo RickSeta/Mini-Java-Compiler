@@ -33,19 +33,19 @@ def checa_aceito(state, accept, token, token_sequence):
         return
 
     if (accept[state]):
-        print(token, state)
+        # print(token, state)
         if reservada(token):
-            print("\nPalavra reservada: ", token)
+            # print("\nPalavra reservada: ", token)
             token_sequence.append((token, token))
             return
 
-        print("\nAceito")
-        print("Token: ", token,"\n")
+        # print("\nAceito")
+        # print("Token: ", token,"\n")
 
         if state == 2:
             classe = 'id'
         elif state == 4:
-            classe = 'integer'
+            classe = 'num'
         elif state == 5:
             if token != 'System.out.println':
                 print("Erro")
@@ -102,7 +102,7 @@ def scanner(input):
             if not_comment: #ignore comments
                 if (is_space(ch)): #ends token if sees a space
 
-                    print("\nFim do token por espaço")
+                    # print("\nFim do token por espaço")
                     break
 
                 special = check_special_char(ch, token) #check if char is special
@@ -137,13 +137,20 @@ def scanner(input):
                 # print("Estado: ", state, "Caracter: ", ch)
                 
             else:
-                print("Erro")
-                break
+                if ch == "$":
+                    token_sequence.append((ch, ch))
+                else:
+                    print("Erro", ch)
+                    break
 
         checa_aceito(state, accept, token, token_sequence)
         
-        print(token_sequence, "\n")
     return token_sequence
 
-Input = list("if (x == 1) { System.out.println(x); } else { System.out.println(2); }")
+Input = list("""class Factorial{
+ public static void main(String[] a){
+ System.out.println(new Fac().ComputeFac(10));
+ }
+}
+""")
 print(scanner(Input))
