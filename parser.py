@@ -17,11 +17,12 @@ gramatica_minijava = {
     "METODO": [["public", "TIPO", "id", "(", "PARAMS_OPTIONAL", ")", "{", "VAR_LIST", "CMD_LIST", "return", "EXP", ";", "}"]],
     "PARAMS_OPTIONAL": [["PARAMS"], ["ε"]],
 
-    "PARAMS": [["TIPO", "id", "PARAMS", "TIPO_ID_LIST"]],
+    "PARAMS": [["TIPO", "id", "TIPO_ID_LIST"]],
     "TIPO_ID_LIST": [[",","TIPO", "id", "TIPO_ID_LIST"], ["ε"]],
 
 
-    "TIPO": [["int", "[", "]"], ["boolean"], ["int"], ["id"]],
+    "TIPO": [["INT_OPTION"], ["boolean"], ["id"]],
+    "INT_OPTION": [["int"], ["int", "[", "]"]],
 
     "CMD_LIST": [["CMD", "CMD_LIST"], ["ε"]],
     "CMD": [["MATCHED_CMD"],
@@ -50,13 +51,16 @@ gramatica_minijava = {
     "MEXP": [["SEXP", "MEXP'"]],
     "MEXP'": [["*", "SEXP", "MEXP'"], ["ε"]],
 
-    "SEXP": [["!", "SEXP"],  ["-", "SEXP"], ["true"], ["false"], ["num"], ["null"],["new","new_options"],["PEXP", ".", "length"], ["PEXP", "[", "EXP", "]"]],
+    "SEXP": [["!", "SEXP"],  ["-", "SEXP"], ["true"], ["false"], ["num"], ["null"],["new","new_options"],["PEXP", "PEXP_OPTIONS"]],
+    "PEXP_OPTIONS": [[".", "length"], ["[", "EXP", "]"], ["ε"]],
 
-    "new_options":[["new_int_array"],["new_object"]],
+    "new_options":[["new_int_array"],["id_possible"]],
     "new_int_array": [["int", "[", "EXP", "]"]],
 
-    "PEXP": [["new_options"], ["id", "PEXP'"], ["this", "PEXP'"], ["(", "EXP", ")", "PEXP'"]],
-    "new_object": [["id", "(", ")", "PEXP'"]],
+    "PEXP": [["id_possible"], ["this", "PEXP'"], ["(", "EXP", ")", "PEXP'"]],
+    "id_possible": [["id", "id_options"]],
+    "id_options": [["(", ")", "PEXP'"], ["PEXP'"]],
+
     "PEXP'": [[".", "id", "PEXP''"], ["ε"]],
     "PEXP''": [["(", "EXPS_OPTIONAL", ")", "PEXP'"], ["ε"]],
 
@@ -218,9 +222,9 @@ def parser(tabela,gramatica,entrada):
     pilha = ["$", producao_inicial]
     entrada.append("$")
 
-    # tree = arvore(data = producao_inicial, id = 1)
-    # syntatic_tree_pointer = tree
-    # nivel = 0
+    tree = arvore(data = producao_inicial, id = 1)
+    syntatic_tree_pointer = tree
+    nivel = 0
     
     entradaPointer = 0
     while True:
@@ -230,15 +234,6 @@ def parser(tabela,gramatica,entrada):
         topoPilha = pilha[-1]
 
         #Eqnaunto houver demarcador de nivel remova e reduza o nivel da arvore que esta sendo trabalho
-        # while topoPilha == "#":
-        #     nivel -=1
-        #     print("Reducao ao nivel ",nivel)
-        #     pilha.pop()
-        #     topoPilha = pilha[-1]
-        #     syntatic_tree_pointer = syntatic_tree_pointer.parent
-        #     syntatic_tree_pointer.current_child += 1
-        #     if syntatic_tree_pointer.current_child < len(syntatic_tree_pointer.child):
-        #         syntatic_tree_pointer = syntatic_tree_pointer.child[syntatic_tree_pointer.current_child]
 
         #se o topo da pilha for o simbolo de fim da pilha e o simbolo de entrada for o mesmo aceita
         if topoPilha == entrada[entradaPointer][0] == "$":
@@ -255,27 +250,12 @@ def parser(tabela,gramatica,entrada):
                 pilha.pop()
 
                 if producao[0] != "ε":
-                    # pilha.append('#')
-                    # nivel +=1
 
-                    # print("Adicao ao nivel ",nivel)
-
-                    # idcounter = 0
                     for simbolo in reversed(producao):
                         pilha.append(simbolo)
             
-                    # for simbolo in producao:
-                    #     syntatic_tree_pointer.add_child(simbolo, simbolo,simbolo+str(idcounter))
-                    #     idcounter += 1
-
-                    # syntatic_tree_pointer = syntatic_tree_pointer.child[0]
                 else:
                     print("Adicao de ε")
-                    # syntatic_tree_pointer.add_child("ε", "ε",str(entradaPointer))
-                    
-                    # if(pilha[-1] != "#"):
-                    #     syntatic_tree_pointer.parent.current_child += 1
-                    #     syntatic_tree_pointer = syntatic_tree_pointer.parent.child[syntatic_tree_pointer.parent.current_child]
             else:
                 print("Erro. Não existe regra para", topoPilha, entrada[entradaPointer][1])
                 break
@@ -284,17 +264,12 @@ def parser(tabela,gramatica,entrada):
         elif topoPilha == entrada[entradaPointer][1]:
             print('match', ":", entrada[entradaPointer][0])
             pilha.pop()
-            #colocando terminal na arvore
-            # print(syntatic_tree_pointer.data)
-            # syntatic_tree_pointer.add_child(entrada[entradaPointer][0],entrada[entradaPointer][0],entradaPointer)
-            # syntatic_tree_pointer.parent.current_child += 1
-            # syntatic_tree_pointer = syntatic_tree_pointer.parent.child[syntatic_tree_pointer.parent.current_child]
             
             entradaPointer += 1
 
         else:
             print("Erro. ")
-            # tree.print_tree()
+            tree.print_tree()
             break
 # tree = arvore(data = "S", id = "1")
 # tree.add_child("S", "2")
@@ -308,9 +283,19 @@ def parser(tabela,gramatica,entrada):
 # tree.print_tree()
 
 Input = scanner.scanner(list("""class Factorial{
- public static void main(String[] a){
- System.out.println(new Fac().ComputeFac(10));
- }
+public static void main(String[] a){
+System.out.println(new Fac().ComputeFac(10));
+}
+}
+class Fac {
+public int ComputeFac(int num){
+int num_aux;
+if (num != 1)
+oioioi = 4;
+else
+num_aux = num * (this.ComputeFac(num-1));
+return num_aux ;
+}
 } $
 """))
 parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
