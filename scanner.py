@@ -153,4 +153,3 @@ Input = list("""class Factorial{
  }
 }
 """)
-print(scanner(Input))

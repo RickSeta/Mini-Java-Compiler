@@ -71,7 +71,10 @@ gramatica_minijava = {
 }
 
 test_grammar ={
-    "S": [["(", "S",")","S"], ["ε"]],
+    "K": [["R","Z"]],
+    "R": [["int"],["class"]],
+    "Z":[["void"],["public"]],
+
 }
 def firstFunc(gramatica):
     firsts = {}
@@ -184,13 +187,14 @@ def print_tabela(tabela):
 
 # print_tabela(tabela_ll1(test_grammar))
 class arvore(object):
-    def __init__(self, parent = None, id = None, child =None, data = None, type = any, current_child = 0):
+    def __init__(self, parent = None, id = None, child =None, data = None, type = any, current_child = 0, nivel=0):
         self.parent = parent
         self.child = child
         self.id = id
         self.type = type
         self.data = data
         self.current_child = current_child
+        self.nivel = nivel
     
     def add_child(self,name, data, id):
         if self.child == None:
@@ -199,15 +203,21 @@ class arvore(object):
         self.child.append(new_child)
         return new_child
 
+    def append_child(self, child):
+        if self.child == None:
+            self.child = []
+        self.child.append(child)
+
     def print_tree(self, level=0, is_last=True, indent="  "):
 
         if self.data is None:
+            print("Empty tree")
             return
         qmark = "\u25A1"  # Unicode right angle quotation mark for better visual representation
 
         # Print the current node with proper indentation
         print(indent * level + ("|- " if level > 0 else "") +
-              (qmark if is_last else "|") + str(self.data))
+              (qmark if is_last else "|") + str(self.data) +" "+ (("tipo:"+str(self.type)) if self.type != any else "")) 
 
         # Recursively print child nodes with adjusted indentation
         if self.child:
@@ -222,10 +232,9 @@ def parser(tabela,gramatica,entrada):
     pilha = ["$", producao_inicial]
     entrada.append("$")
 
-    tree = arvore(data = producao_inicial, id = 1)
-    syntatic_tree_pointer = tree
+    syntatic_tree_pointer : arvore
+    child_list = []
     nivel = 0
-    
     entradaPointer = 0
     while True:
         print("\n------------------------------------")
@@ -233,13 +242,33 @@ def parser(tabela,gramatica,entrada):
         print("Pilha: ",pilha," entrada: ", entrada[entradaPointer])
         topoPilha = pilha[-1]
 
-        #Eqnaunto houver demarcador de nivel remova e reduza o nivel da arvore que esta sendo trabalho
 
         #se o topo da pilha for o simbolo de fim da pilha e o simbolo de entrada for o mesmo aceita
         if topoPilha == entrada[entradaPointer][0] == "$":
+            syntatic_tree_pointer.print_tree()
             print("Aceito")
             break
+        if topoPilha == "#":
+            #removendo o marcador "#"
+            pilha.pop()
 
+            #removendo o pai da child_list
+            childrens_father = pilha.pop()
+
+            novo_no = arvore(id=childrens_father, data=childrens_father,nivel=(nivel-1))
+            index = 0
+            while(index < len(child_list)):
+                child = child_list[index]
+                if child.nivel == nivel:
+                    novo_no.append_child(child)
+                    child_list.pop(index)
+                
+                else:
+                    index += 1
+            child_list.append(novo_no)
+            syntatic_tree_pointer = novo_no
+            nivel -=1
+            continue
         #se o topo da pilha for uma produção possivel
         elif topoPilha in gramatica:
 
@@ -247,7 +276,8 @@ def parser(tabela,gramatica,entrada):
             if entrada[entradaPointer][1] in tabela[topoPilha]:
                 producao = tabela[topoPilha][entrada[entradaPointer][1]]
                 print("Produção: ", producao)
-                pilha.pop()
+                pilha.append("#")
+                nivel += 1
 
                 if producao[0] != "ε":
 
@@ -263,24 +293,15 @@ def parser(tabela,gramatica,entrada):
         #em caso de match
         elif topoPilha == entrada[entradaPointer][1]:
             print('match', ":", entrada[entradaPointer][0])
+            nova_child = arvore(id=entrada[entradaPointer][0], data=entrada[entradaPointer][0], type=entrada[entradaPointer][1], nivel=nivel)
+            child_list.append(nova_child)
             pilha.pop()
             
             entradaPointer += 1
 
         else:
             print("Erro. ")
-            tree.print_tree()
             break
-# tree = arvore(data = "S", id = "1")
-# tree.add_child("S", "2")
-# tree.add_child("S", "3")
-
-# tree.child[0].add_child("S", "4")
-# tree.child[0].add_child("S", "5")
-# tree.child[1].add_child("S", "6")
-# tree.child[1].add_child("S", "7")
-# tree.child[0].child[0].add_child("S", "8")
-# tree.print_tree()
 
 Input = scanner.scanner(list("""class Factorial{
 public static void main(String[] a){
@@ -300,6 +321,9 @@ return num_aux ;
 """))
 parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
 
-# print(tabela_ll1(gramatica_minijava))
+# print(tabela_ll1(test_grammar))
 # print(follow(firstFunc(gramatica_minijava),gramatica_minijava))
 # print(firstFunc(gramatica_minijava))
+
+# Input = scanner.scanner(list("""int public $"""))
+# parser(tabela_ll1(test_grammar),test_grammar,Input)
