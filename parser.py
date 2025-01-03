@@ -321,21 +321,34 @@ def parser(tabela,gramatica,entrada):
         elif topoPilha == entrada[entradaPointer][1]:
             print('match', ":", entrada[entradaPointer][0])
             nova_child = arvore(id=entrada[entradaPointer][0], data=entrada[entradaPointer][0], type=entrada[entradaPointer][1], nivel=nivel)
-            child_list.append(nova_child)
-            pilha.pop()
+            
             
             entradaPointer += 1
-
+            #if de analise semantica: checagem da existencia da variavel
             if entrada[entradaPointer][1] == "id":
                 idlist ={'boolean', 'class' , 'String', 'int', 'new', '.'}
-                if entrada[entradaPointer - 1][0] in idlist or entrada[entradaPointer - 3][0] in idlist:
-                    semantic_table.add_variable(entrada[entradaPointer][0], None, entrada[entradaPointer -1])
-                elif semantic_table.search_variable(entrada[entradaPointer][0]):
-                    pass
+                search = semantic_table.search_variable(entrada[entradaPointer][0])
+                type_position = 0
+                if entrada[entradaPointer - 1][0] in idlist:
+                    type_position = 1
+                if entrada[entradaPointer - 3][0] in idlist:
+                    type_position = 3
+                if type_position != 0:
+                    semantic_table.add_variable(entrada[entradaPointer][0], None, entrada[entradaPointer - type_position][0])
+                    if(entrada[entradaPointer + 1][0] == "=" and entrada[entradaPointer + 2][1] == "num"):
+                        semantic_table.search_variable(entrada[entradaPointer][0],entrada[entradaPointer + 2][0],"num")
+                   
+                elif (search is not None):
+                    if search["valor"] is not None:
+                        nova_child.type = search["tipo"]
+                        nova_child.data = search["valor"]
+                        nova_child.id = search["data"]
                 else:
                     print("Variável não declarada")
                     break
-
+            #fim do if de analise semantica
+            child_list.append(nova_child)
+            pilha.pop()
         else:
             print("Erro. ")
             break
