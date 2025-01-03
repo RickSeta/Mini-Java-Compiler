@@ -1,5 +1,5 @@
 import scanner
-
+import semantica
 
 gramatica_minijava = {
     "PROG": [["MAIN", "CLASSE_LIST"]],
@@ -71,9 +71,11 @@ gramatica_minijava = {
 }
 
 test_grammar ={
-    "K": [["R","Z"]],
+    "K": [["R","X"]],
     "R": [["int"],["class"]],
     "Z":[["void"],["public"]],
+    "X":[["Z", "W"], ["ε"]],
+    "W":[["id"]],
 
 }
 def firstFunc(gramatica):
@@ -208,6 +210,28 @@ class arvore(object):
             self.child = []
         self.child.append(child)
 
+    def simplify(self):
+        
+        if self.type != any:
+            return self
+        elif self.child == None:
+            return
+        elif len(self.child) > 1:
+            child_list = []
+            for child in self.child:
+                temp = child.simplify()
+                if temp is not None:
+                    child_list.append(temp)
+            self.child = child_list
+        if len(self.child) == 1:
+            if self.child[0] is not None:
+                self.child = [self.child[0].simplify()]
+                if len(self.child) == 1:
+                    if self.child[0] is not None:
+                        return self.child[0]
+        return self
+
+
     def print_tree(self, level=0, is_last=True, indent="  "):
 
         if self.data is None:
@@ -224,10 +248,14 @@ class arvore(object):
             i = 0
             while(len(self.child) > i):
                 is_last_child = (i == len(self.child) - 1)
-                self.child[i].print_tree(level + 1, is_last_child, indent)
+                if self.child[i] is not None:
+                    self.child[i].print_tree(level + 1, is_last_child, indent)
                 i += 1
 
 def parser(tabela,gramatica,entrada):
+
+    semantic_table = semantica.semantic_table("IDS table")
+
     producao_inicial= list(gramatica.keys())[0]
     pilha = ["$", producao_inicial]
     entrada.append("$")
@@ -245,9 +273,8 @@ def parser(tabela,gramatica,entrada):
 
         #se o topo da pilha for o simbolo de fim da pilha e o simbolo de entrada for o mesmo aceita
         if topoPilha == entrada[entradaPointer][0] == "$":
-            syntatic_tree_pointer.print_tree()
             print("Aceito")
-            break
+            return syntatic_tree_pointer
         if topoPilha == "#":
             #removendo o marcador "#"
             pilha.pop()
@@ -299,27 +326,42 @@ def parser(tabela,gramatica,entrada):
             
             entradaPointer += 1
 
+            if entrada[entradaPointer][1] == "id":
+                idlist ={'boolean', 'class' , 'String', 'int', 'new', '.'}
+                if entrada[entradaPointer - 1][0] in idlist or entrada[entradaPointer - 3][0] in idlist:
+                    semantic_table.add_variable(entrada[entradaPointer][0], None, entrada[entradaPointer -1])
+                elif semantic_table.search_variable(entrada[entradaPointer][0]):
+                    pass
+                else:
+                    print("Variável não declarada")
+                    break
+
         else:
             print("Erro. ")
             break
 
-Input = scanner.scanner(list("""class Factorial{
-public static void main(String[] a){
-System.out.println(new Fac().ComputeFac(10));
+Input = scanner.scanner(list("""
+class Factorial{
+    public static void main(String[] a){
+
+    System.out.println(new Fac().ComputeFac( 10 + 10 ));
 }
 }
 class Fac {
-public int ComputeFac(int num){
-int num_aux;
-if (num != 1)
-oioioi = 4;
-else
-num_aux = num * (this.ComputeFac(num-1));
-return num_aux ;
-}
+    public int ComputeFac(int num){
+        int num_aux; 
+        if (num != 1)
+        num_aux = 4;
+        else
+        num_aux = num * (this.ComputeFac(num-2 ));
+        return num_aux ;
+    }
 } $
 """))
-parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
+# Input = scanner.scanner(list("""  int public alberto $"""))
+avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
+avr.print_tree()
+avr.simplify().print_tree()
 
 # print(tabela_ll1(test_grammar))
 # print(follow(firstFunc(gramatica_minijava),gramatica_minijava))
