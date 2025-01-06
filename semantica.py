@@ -30,7 +30,34 @@ class semantic_table:
     
     def semantic_check(token, next_token, dnext_token):
         print()
-        
+    
+def check_constants_operators(arvore):
+    
+    pai = arvore
+    if not pai.child:
+        return arvore
+    
+    filho_index = 0
+    resultado = 0
+    while filho_index < len(pai.child):
+        filho = pai.child[filho_index]
+        if filho.type == "num" and filho_index == 0:
+            temp = pai.child[filho_index + 1]
+            if temp.child[0]:
+                if temp.child[0].data in {"+", "-", "*"}:
+                    if temp.child[0].data == "+":
+                        resultado = int(filho.data) + int(temp.child[1].data)
+                    elif temp.child[0].data == "-":
+                        resultado = int(filho.data) - (temp.child[1].data)
+                    elif temp.child[0].data == "*":
+                        resultado = int(filho.data) * (temp.child[1].data)
+                    pai.child = []
+                    pai.type = "num"
+                    pai.data = resultado
+        if pai.child:
+            pai.child[filho_index] = check_constants_operators(filho) # type: ignore
+        filho_index += 1
+    return pai
 
 
 # tabela = semantic_table("Tabela de Teste")

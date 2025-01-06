@@ -373,8 +373,9 @@ class Fac {
 """))
 # Input = scanner.scanner(list("""  int public alberto $"""))
 avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
-avr.print_tree()
-avr.simplify().print_tree()
+simple = avr.simplify()
+simple.print_tree()
+semantica.check_constants_operators(simple).print_tree()
 
 # print(tabela_ll1(test_grammar))
 # print(follow(firstFunc(gramatica_minijava),gramatica_minijava))
