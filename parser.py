@@ -1,3 +1,4 @@
+from geracao import MIPSGenerator
 import scanner
 import semantica
 
@@ -21,8 +22,8 @@ gramatica_minijava = {
     "TIPO_ID_LIST": [[",","TIPO", "id", "TIPO_ID_LIST"], ["ε"]],
 
 
-    "TIPO": [["INT_OPTION"], ["boolean"], ["id"]],
-    "INT_OPTION": [["int"], ["int", "[", "]"]],
+    "TIPO": [["int","INT_OPTION"], ["boolean"], ["id"]],
+    "INT_OPTION": [["[", "]"], ["ε"]],
 
     "CMD_LIST": [["CMD", "CMD_LIST"], ["ε"]],
     "CMD": [["MATCHED_CMD"],
@@ -106,42 +107,42 @@ def firstFunc(gramatica):
     return firsts
 
 def follow(firsts, gramatica):
-    # Initialize FOLLOW sets as empty lists
+    # Inicializa os conjuntos FOLLOW como listas vazias
     follow = {regra: [] for regra in gramatica}
     
-    # Add '$' to the FOLLOW set of the start symbol
+    # Adiciona '$' ao conjunto FOLLOW do símbolo inicial
     follow[list(gramatica.keys())[0]].append("$")
     
     changes = True
     while changes:
         changes = False
         
-        # Iterate through the grammar
+        # Itera através da gramática
         for regra in gramatica:
             for producao in gramatica[regra]:
-                # Iterate through each symbol in the production
+                # Itera através de cada símbolo na produção
                 for i in range(len(producao)):
-                    if producao[i] in gramatica:  # If symbol is a non-terminal
-                        # Case when we are at the end of the production (A -> αB)
+                    if producao[i] in gramatica:  # Se o símbolo é um não-terminal
+                        # Caso em que estamos no final da produção (A -> αB)
                         if i == len(producao) - 1:
                             for terminal in follow[regra]:
                                 if terminal not in follow[producao[i]]:
                                     follow[producao[i]].append(terminal)
                                     changes = True
                         else:
-                            # Look at the next symbol in the production
+                            # Olha para o próximo símbolo na produção
                             next_symbol = producao[i + 1]
-                            if next_symbol not in gramatica:  # It's a terminal
+                            if next_symbol not in gramatica:  # É um terminal
                                 if next_symbol not in follow[producao[i]]:
                                     follow[producao[i]].append(next_symbol)
                                     changes = True
-                            else:  # It's a non-terminal
-                                # Add FIRST(next_symbol) (except epsilon) to FOLLOW of current non-terminal
+                            else:  # É um não-terminal
+                                # Adiciona FIRST(next_symbol) (exceto epsilon) ao FOLLOW do não-terminal atual
                                 for terminal in firsts[next_symbol]:
                                     if terminal != "ε" and terminal not in follow[producao[i]]:
                                         follow[producao[i]].append(terminal)
                                         changes = True
-                                # If FIRST(next_symbol) contains epsilon, propagate FOLLOW(A) to FOLLOW(B)
+                                # Se FIRST(next_symbol) contém epsilon, propaga FOLLOW(A) para FOLLOW(B)
                                 if "ε" in firsts[next_symbol]:
                                     for terminal in follow[regra]:
                                         if terminal not in follow[producao[i]]:
@@ -160,9 +161,6 @@ def tabela_ll1(gramatica):
         tabela[regra] = {}
     for regra in gramatica:
         tabela[regra] = {}
-        if(regra == "new_options"):
-            print("EXPS", firsts[regra])
-            print("EXPS", follows[regra])
         for producao in gramatica[regra]:
             if producao[0] == "ε":
                 tabela[regra]["$"] = ["ε"]
@@ -189,13 +187,12 @@ def print_tabela(tabela):
 
 # print_tabela(tabela_ll1(test_grammar))
 class arvore(object):
-    def __init__(self, parent = None, id = None, child =None, data = None, type = any, current_child = 0, nivel=0):
+    def __init__(self, parent = None, id = None, child =None, data = None, type = any, nivel=0):
         self.parent = parent
         self.child = child
         self.id = id
         self.type = type
         self.data = data
-        self.current_child = current_child
         self.nivel = nivel
     
     def add_child(self,name, data, id):
@@ -255,6 +252,7 @@ class arvore(object):
 def parser(tabela,gramatica,entrada):
 
     semantic_table = semantica.semantic_table("IDS table")
+    pendente = []
 
     producao_inicial= list(gramatica.keys())[0]
     pilha = ["$", producao_inicial]
@@ -273,6 +271,10 @@ def parser(tabela,gramatica,entrada):
 
         #se o topo da pilha for o simbolo de fim da pilha e o simbolo de entrada for o mesmo aceita
         if topoPilha == entrada[entradaPointer][0] == "$":
+            for pend in pendente:
+                if not semantic_table.search_variable(pend):
+                    print("Variável não declarada: ", pend)
+                    return
             print("Aceito")
             return syntatic_tree_pointer
         if topoPilha == "#":
@@ -321,12 +323,16 @@ def parser(tabela,gramatica,entrada):
         elif topoPilha == entrada[entradaPointer][1]:
             print('match', ":", entrada[entradaPointer][0])
             nova_child = arvore(id=entrada[entradaPointer][0], data=entrada[entradaPointer][0], type=entrada[entradaPointer][1], nivel=nivel)
+            if entrada[entradaPointer][0] == "ComputeFac":
+                print(entrada[entradaPointer][1])
             
-            
-            entradaPointer += 1
             #if de analise semantica: checagem da existencia da variavel
-            if entrada[entradaPointer][1] == "id":
-                idlist ={'boolean', 'class' , 'String', 'int', 'new', '.'}
+            if entrada[entradaPointer][0] == "{":
+                semantic_table.novo_escopo()
+            elif entrada[entradaPointer][0] == "}":
+                semantic_table.fim_escopo()
+            elif entrada[entradaPointer][1] == 'id':
+                idlist ={'boolean', 'class' , 'String', 'int',}
                 search = semantic_table.search_variable(entrada[entradaPointer][0])
                 type_position = 0
                 if entrada[entradaPointer - 1][0] in idlist:
@@ -334,7 +340,12 @@ def parser(tabela,gramatica,entrada):
                 if entrada[entradaPointer - 3][0] in idlist:
                     type_position = 3
                 if type_position != 0:
-                    semantic_table.add_variable(entrada[entradaPointer][0], None, entrada[entradaPointer - type_position][0])
+                    if entrada[entradaPointer -2][0] == "public":      
+
+                        semantic_table.add_variable(entrada[entradaPointer][0], None, entrada[entradaPointer - type_position][0], True)
+                    else:
+                        semantic_table.add_variable(entrada[entradaPointer][0], None, entrada[entradaPointer - type_position][0])
+
                     if(entrada[entradaPointer + 1][0] == "=" and entrada[entradaPointer + 2][1] == "num"):
                         semantic_table.search_variable(entrada[entradaPointer][0],entrada[entradaPointer + 2][0],"num")
                    
@@ -344,9 +355,11 @@ def parser(tabela,gramatica,entrada):
                         nova_child.data = search["valor"]
                         nova_child.id = search["data"]
                 else:
-                    print("Variável não declarada")
-                    break
+                    pendente.append(entrada[entradaPointer][0])
+                    print("Variável ainda não declarada")
+                    
             #fim do if de analise semantica
+            entradaPointer += 1
             child_list.append(nova_child)
             pilha.pop()
         else:
@@ -374,8 +387,8 @@ class Fac {
 # Input = scanner.scanner(list("""  int public alberto $"""))
 avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
 simple = avr.simplify()
-simple.print_tree()
-semantica.check_constants_operators(simple).print_tree()
+simple
+final_tree = semantica.check_constants_operators(simple).print_tree()
 
 # print(tabela_ll1(test_grammar))
 # print(follow(firstFunc(gramatica_minijava),gramatica_minijava))
@@ -383,3 +396,8 @@ semantica.check_constants_operators(simple).print_tree()
 
 # Input = scanner.scanner(list("""int public $"""))
 # parser(tabela_ll1(test_grammar),test_grammar,Input)
+
+
+# generator = MIPSGenerator()
+# generator.generate_code(final_tree)  # Assuming `root` is the parsed AST root
+# print(generator.get_code())

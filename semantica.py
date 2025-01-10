@@ -4,10 +4,13 @@ class semantic_table:
         self.name = name
         self.tables_list = [{}]
     
-    def add_variable(self, data, valor, tipo):
+    def add_variable(self, data, valor, tipo, public=False):
         found = self.search_variable(data, valor)
         if not found:
-            self.tables_list[-1][data] = {"data" : data, "valor" : valor, "tipo" : tipo}
+            if public:
+                self.tables_list[0][data] = {"data" : data, "valor" : valor, "tipo" : tipo}
+            else:
+                self.tables_list[-1][data] = {"data" : data, "valor" : valor, "tipo" : tipo}
     
     def search_variable(self, data, valor = None, tipo = None):
         for table in self.tables_list:
@@ -48,11 +51,28 @@ def check_constants_operators(arvore):
                     if temp.child[0].data == "+":
                         resultado = int(filho.data) + int(temp.child[1].data)
                     elif temp.child[0].data == "-":
-                        resultado = int(filho.data) - (temp.child[1].data)
+                        resultado = int(filho.data) - int(temp.child[1].data)
                     elif temp.child[0].data == "*":
-                        resultado = int(filho.data) * (temp.child[1].data)
+                        resultado = int(filho.data) * int(temp.child[1].data)
                     pai.child = []
                     pai.type = "num"
+                    pai.data = resultado
+                elif temp.child[0].data in {"!=", "==", "<", ">", "<=", ">="}:
+                    if temp.child[0].data == "==":
+                        resultado = int(filho.data) == int(temp.child[1].data)
+                    elif temp.child[0].data == "!=":
+                        resultado = int(filho.data) != int(temp.child[1].data)
+                    elif temp.child[0].data == "<":
+                        resultado = int(filho.data) < int(temp.child[1].data)
+                    elif temp.child[0].data == ">":
+                        resultado = int(filho.data) > int(temp.child[1].data)
+                    elif temp.child[0].data == "<=":
+                        resultado = int(filho.data) <= int(temp.child[1].data)
+                    elif temp.child[0].data == ">=":
+                        resultado = int(filho.data) >= int(temp.child[1].data)
+
+                    pai.child = []
+                    pai.type = "boolean"
                     pai.data = resultado
         if pai.child:
             pai.child[filho_index] = check_constants_operators(filho) # type: ignore
