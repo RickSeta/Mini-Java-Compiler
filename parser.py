@@ -1,3 +1,4 @@
+from arquivos import append_to_file, erase_file_content, read_text_files
 from geracao import MIPSGenerator
 import scanner
 import semantica
@@ -249,7 +250,27 @@ class arvore(object):
                     self.child[i].print_tree(level + 1, is_last_child, indent)
                 i += 1
 
-def parser(tabela,gramatica,entrada):
+    def write_tree(self, level=0, is_last=True, indent="  ", dir_name = None, file_name = None):
+
+        if self.data is None:
+            append_to_file(file_name+"_tree.txt","Empty tree", dir_name)
+            return
+        qmark = "\u25A1"  # Unicode right angle quotation mark for better visual representation
+
+        # Print the current node with proper indentation
+        content = (indent * level + ("|- " if level > 0 else "") +
+              (qmark if is_last else "|") + str(self.data) +" "+ (("tipo:"+str(self.type)) if self.type != any else "")) 
+        append_to_file(file_name+"_tree.txt",content, dir_name)
+        # Recursively print child nodes with adjusted indentation
+        if self.child:
+            i = 0
+            while(len(self.child) > i):
+                is_last_child = (i == len(self.child) - 1)
+                if self.child[i] is not None:
+                    self.child[i].write_tree(level + 1, is_last_child, indent, dir_name, file_name)
+                i += 1
+
+def parser(tabela,gramatica,entrada, dir_name = None, file_name = None):
 
     semantic_table = semantica.semantic_table("IDS table")
     pendente = []
@@ -262,10 +283,12 @@ def parser(tabela,gramatica,entrada):
     child_list = []
     nivel = 0
     entradaPointer = 0
+
+    erase_file_content(file_name+"_log.txt", dir_name)
     while True:
-        print("\n------------------------------------")
+        append_to_file(file_name+"_log.txt","\n------------------------------------", dir_name)
         # tree.print_tree()
-        print("Pilha: ",pilha," entrada: ", entrada[entradaPointer])
+        append_to_file(file_name+"_log.txt","Pilha: " + str(pilha) + " entrada: " +  str(entrada[entradaPointer]), dir_name)
         topoPilha = pilha[-1]
 
 
@@ -273,9 +296,9 @@ def parser(tabela,gramatica,entrada):
         if topoPilha == entrada[entradaPointer][0] == "$":
             for pend in pendente:
                 if not semantic_table.search_variable(pend):
-                    print("Variável não declarada: ", pend)
+                    append_to_file(file_name+"_log.txt","Variável não declarada: " + pend, dir_name)
                     return
-            print("Aceito")
+            append_to_file(file_name+"_log.txt","Aceito", dir_name)
             return syntatic_tree_pointer
         if topoPilha == "#":
             #removendo o marcador "#"
@@ -304,7 +327,7 @@ def parser(tabela,gramatica,entrada):
             #se houver transicao na tabela utilizando o topo da pilha e o simbolo de entrada então substitui o topo da pilha pela nova produção
             if entrada[entradaPointer][1] in tabela[topoPilha]:
                 producao = tabela[topoPilha][entrada[entradaPointer][1]]
-                print("Produção: ", producao)
+                append_to_file(file_name+"_log.txt","Produção: " + str(producao), dir_name)
                 pilha.append("#")
                 nivel += 1
 
@@ -314,17 +337,15 @@ def parser(tabela,gramatica,entrada):
                         pilha.append(simbolo)
             
                 else:
-                    print("Adicao de ε")
+                    append_to_file(file_name+"_log.txt","Adicao de ε", dir_name)
             else:
-                print("Erro. Não existe regra para", topoPilha, entrada[entradaPointer][1])
+                append_to_file(file_name+"_log.txt","Erro. Não existe regra para" + topoPilha +" "+ str(entrada[entradaPointer][1]), dir_name)
                 break
         
         #em caso de match
         elif topoPilha == entrada[entradaPointer][1]:
-            print('match', ":", entrada[entradaPointer][0])
+            append_to_file(file_name+"_log.txt",'match: '+ entrada[entradaPointer][0], dir_name)
             nova_child = arvore(id=entrada[entradaPointer][0], data=entrada[entradaPointer][0], type=entrada[entradaPointer][1], nivel=nivel)
-            if entrada[entradaPointer][0] == "ComputeFac":
-                print(entrada[entradaPointer][1])
             
             #if de analise semantica: checagem da existencia da variavel
             if entrada[entradaPointer][0] == "{":
@@ -356,39 +377,32 @@ def parser(tabela,gramatica,entrada):
                         nova_child.id = search["data"]
                 else:
                     pendente.append(entrada[entradaPointer][0])
-                    print("Variável ainda não declarada")
+                    append_to_file(file_name+"_log.txt","Variável ainda não declarada", dir_name)
                     
             #fim do if de analise semantica
             entradaPointer += 1
             child_list.append(nova_child)
             pilha.pop()
         else:
-            print("Erro. ")
+            append_to_file(file_name+"_log.txt","Erro. ", dir_name)
             break
 
-Input = scanner.scanner(list("""
-class Factorial{
-    public static void main(String[] a){
+def mini_java_compiler(dir_name):
+    inp = read_text_files(dir_name)
+    
+    for file in inp:
+        erase_file_content(file+"_tree.txt", dir_name)
+        Input = scanner.scanner(list(inp[file]))
+        avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input, dir_name, file)
+        append_to_file(file+"_tree.txt","\n\nÁrvore sintática não simplificada", dir_name)
+        avr.write_tree(dir_name=dir_name, file_name=file)
+        simple = avr.simplify()
+        final_tree = semantica.check_constants_operators(simple)
+        append_to_file(file+"_tree.txt","\n\nÁrvore sintática simplificada e pós analise semantica", dir_name)
+        final_tree.write_tree(dir_name=dir_name, file_name=file)
+        return final_tree
 
-    System.out.println(new Fac().ComputeFac( 10 + 10 ));
-}
-}
-class Fac {
-    public int ComputeFac(int num){
-        int num_aux; 
-        if (num != 1)
-        num_aux = 4;
-        else
-        num_aux = num * (this.ComputeFac(num-2 ));
-        return num_aux ;
-    }
-} $
-"""))
 # Input = scanner.scanner(list("""  int public alberto $"""))
-avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input)
-simple = avr.simplify()
-simple
-final_tree = semantica.check_constants_operators(simple).print_tree()
 
 # print(tabela_ll1(test_grammar))
 # print(follow(firstFunc(gramatica_minijava),gramatica_minijava))

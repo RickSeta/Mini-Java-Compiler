@@ -22,7 +22,6 @@ class semantic_table:
                     table[data]["tipo"] = tipo
                 return table[data]
             
-        print("data: ", data, " não encontrado")
         return None
     
     def novo_escopo(self):

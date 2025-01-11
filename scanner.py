@@ -71,6 +71,7 @@ def check_char(char):
 
 def scanner(input): 
     input.append(' ')
+    input.append('$')
     transitionTable = {
     1: {'letra': 2, 'numero': 4, 'underline': 3, 'outro': 3, '.' : 3, '/': 6, '*': 3, '\n': 2 }, # Estado inicial
     2: {'letra': 2, 'numero': 2, 'underline': 2, 'outro': 3, '.' : 5, '/': 6, '*': 3, '\n': 2 }, # Estado de aceitação identificador
