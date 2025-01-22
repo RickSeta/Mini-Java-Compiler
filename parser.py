@@ -1,5 +1,4 @@
 from arquivos import append_to_file, erase_file_content, read_text_files
-from geracao import MIPSGenerator
 import scanner
 import semantica
 
@@ -392,6 +391,7 @@ def mini_java_compiler(dir_name):
     
     for file in inp:
         erase_file_content(file+"_tree.txt", dir_name)
+        erase_file_content(file+"_log.txt", dir_name)
         Input = scanner.scanner(list(inp[file]))
         avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input, dir_name, file)
         append_to_file(file+"_tree.txt","\n\nÁrvore sintática não simplificada", dir_name)
