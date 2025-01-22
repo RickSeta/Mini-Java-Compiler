@@ -395,12 +395,14 @@ def mini_java_compiler(dir_name):
         Input = scanner.scanner(list(inp[file]))
         avr = parser(tabela_ll1(gramatica_minijava),gramatica_minijava,Input, dir_name, file)
         append_to_file(file+"_tree.txt","\n\nÁrvore sintática não simplificada", dir_name)
-        avr.write_tree(dir_name=dir_name, file_name=file)
-        simple = avr.simplify()
-        final_tree = semantica.check_constants_operators(simple)
-        append_to_file(file+"_tree.txt","\n\nÁrvore sintática simplificada e pós analise semantica", dir_name)
-        final_tree.write_tree(dir_name=dir_name, file_name=file)
-        return final_tree
+        if avr != None:
+            avr.write_tree(dir_name=dir_name, file_name=file)
+            simple = avr.simplify()
+            final_tree = semantica.check_constants_operators(simple)
+            append_to_file(file+"_tree.txt","\n\nÁrvore sintática simplificada e pós analise semantica", dir_name)
+            final_tree.write_tree(dir_name=dir_name, file_name=file)
+        else:
+            print("Checar log " + file+"_log.txt")
 
 # Input = scanner.scanner(list("""  int public alberto $"""))
 
